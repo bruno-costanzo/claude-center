@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Claude Center</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#141210">
+<style>
+  /* A 1997 call center: fluorescent tubes, CRT monitors, laminate desk. */
+  :root{
+    --paper:#141210; --panel:#1d1a16; --rule:#332d25;
+    --ink:#e8e2d4; --faint:#8a8172; --green:#7ee787; --amber:#ffb454;
+    --red:#ff5f56; --neon:#00ff9c;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; min-height:100dvh; background:var(--paper); color:var(--ink);
+    font:16px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    display:flex; flex-direction:column;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px);
+  }
+  .screen{flex:1; display:none; flex-direction:column; align-items:center;
+          justify-content:center; padding:22px 18px 30px; text-align:center; gap:6px}
+  .screen.on{display:flex}
+  .sign{width:100%; max-width:420px; border:2px solid var(--rule);
+    background:linear-gradient(#221e19,#191612); border-radius:4px; padding:10px 12px;
+    box-shadow:0 0 0 3px #100e0c, 0 8px 0 -2px rgba(0,0,0,.6); position:relative}
+  .logo{font-size:23px; font-weight:700; letter-spacing:.06em; color:var(--neon);
+    text-shadow:0 0 12px rgba(0,255,156,.45)}
+  .logo sup{font-size:10px; color:var(--faint); text-shadow:none}
+  .branch{font-size:10.5px; color:var(--faint); letter-spacing:.16em; margin-top:3px}
+  .lang{position:absolute; top:8px; right:9px; background:none; border:1px solid var(--rule);
+    color:var(--faint); font:inherit; font-size:10px; padding:2px 6px; border-radius:2px;
+    cursor:pointer; letter-spacing:.08em}
+  .scene{width:100%; max-width:330px; margin:14px 0 6px}
+  .scene svg{width:100%; height:auto; display:block}
+  @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}
+                   75%{transform:rotate(7deg)}}
+  @keyframes flicker{0%,92%,100%{opacity:1}94%{opacity:.25}96%{opacity:.9}}
+  .tube{animation:flicker 5s infinite}
+  .ringing .phone{animation:shake .35s infinite; transform-origin:50% 60%}
+  .card{width:100%; max-width:420px; border:1px dashed var(--rule);
+    background:var(--panel); border-radius:3px; padding:11px 13px; text-align:left;
+    display:grid; grid-template-columns:1fr auto; gap:5px 10px; font-size:12.5px}
+  .card dt{color:var(--faint); letter-spacing:.05em}
+  .card dd{margin:0; text-align:right}
+  .card dd.bad{color:var(--red)} .card dd.warn{color:var(--amber)}
+  .memo{width:100%; max-width:420px; margin-top:14px; padding:13px 15px;
+    border:2px solid var(--rule); border-radius:3px; background:#191713;
+    text-align:left; font-size:13px; line-height:1.62; color:#a89e8c}
+  .memo b{color:var(--ink)}
+  .memo .head{display:block; font-size:10.5px; letter-spacing:.2em;
+    color:var(--amber); margin-bottom:7px}
+  .sig{font-size:10.5px; color:#6b6355; letter-spacing:.12em; margin:9px 0 0;
+    text-transform:uppercase}
+  .ticker{width:100%; max-width:420px; overflow:hidden; border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); background:#100e0c; margin-top:14px}
+  .ticker div{display:inline-block; white-space:nowrap; padding:5px 0; font-size:11px;
+    color:var(--faint); animation:roll 26s linear infinite}
+  @keyframes roll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .queue{font-size:13px; color:var(--green); margin-top:12px}
+  .queue.empty{color:#6b6355}
+  .label{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .who{font-size:26px; font-weight:700; margin:6px 0 2px; line-height:1.2}
+  .where{font-size:12.5px; color:var(--faint)}
+  .clock{font-variant-numeric:tabular-nums; color:var(--amber); font-size:15px}
+  .buttons{display:flex; gap:48px; margin-top:26px}
+  .btn{width:74px; height:74px; border-radius:50%; border:3px solid #0d0b09;
+    font-size:30px; color:#0d0b09; display:grid; place-items:center; cursor:pointer;
+    box-shadow:0 5px 0 #0d0b09}
+  .btn:active{transform:translateY(4px); box-shadow:0 1px 0 #0d0b09}
+  .accept{background:var(--green)} .reject,.hang{background:var(--red)}
+  .cap{font-size:10.5px;color:var(--faint);margin-top:8px;letter-spacing:.09em;
+    text-transform:uppercase}
+  .pair{display:flex;flex-direction:column;align-items:center}
+  .wave{display:flex; gap:4px; height:32px; align-items:flex-end; margin-top:20px}
+  .wave i{width:5px; background:var(--green); height:5px; transition:height .07s linear}
+  .wave.speaking i{background:var(--amber)}
+  .bubble{max-width:34ch; background:#141c16; border:1px dashed #2c5c3d;
+    border-radius:3px; padding:11px 13px; font-size:13px; margin-top:14px; text-align:left}
+  .toast{position:fixed; inset:auto 14px 14px; background:var(--panel);
+    border:1px solid var(--rule); border-radius:3px; padding:11px 13px;
+    font-size:12.5px; display:none}
+  .small{font-size:12px;color:var(--faint);max-width:34ch}
+  .go{margin-top:20px; background:var(--amber); border:3px solid #0d0b09;
+    color:#0d0b09; border-radius:3px; padding:12px 20px; font-size:13px;
+    font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    box-shadow:0 5px 0 #0d0b09; font-family:inherit; cursor:pointer}
+  .go:active{transform:translateY(4px); box-shadow:0 1px 0 #0d0b09}
+  .fine{font-size:9.5px; color:#4d473d; margin-top:16px; letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+<section id="idle" class="screen on">
+  <div class="sign">
+    <button class="lang" id="btnLang">ES</button>
+    <div class="logo">CLAUDE CENTER<sup>™</sup></div>
+    <div class="branch" data-t="branch"></div>
+  </div>
+
+  <div class="scene">
+    <svg viewBox="0 0 300 170" role="img" aria-label="Operator in a cubicle">
+      <g class="tube">
+        <rect x="70" y="6" width="160" height="7" rx="3" fill="#3a4a3f"/>
+        <rect x="74" y="8" width="152" height="3" fill="#9df7c4" opacity=".85"/>
+        <ellipse cx="150" cy="30" rx="100" ry="20" fill="#7ee787" opacity=".05"/>
+      </g>
+      <rect x="16" y="46" width="268" height="86" fill="#211d18"/>
+      <rect x="16" y="46" width="268" height="86" fill="none" stroke="#332d25" stroke-width="2"/>
+      <line x1="16" y1="60" x2="284" y2="60" stroke="#2b2620" stroke-width="1"/>
+      <g stroke="#4a4238" stroke-width="2" fill="#0f1a14">
+        <rect x="34" y="66" width="54" height="38" rx="2"/>
+        <rect x="98" y="60" width="60" height="44" rx="2"/>
+        <rect x="168" y="66" width="54" height="38" rx="2"/>
+      </g>
+      <g fill="#00ff9c" opacity=".55" font-family="monospace" font-size="7">
+        <text x="39" y="78">waiting…</text><text x="39" y="88">waiting…</text>
+        <text x="103" y="74">? ? ?</text><text x="103" y="86">blocked</text>
+        <text x="173" y="78">idle</text><text x="173" y="88">idle</text>
+      </g>
+      <rect x="232" y="64" width="44" height="30" fill="#2a231a" stroke="#4a4238"/>
+      <text x="254" y="76" fill="#ffb454" font-size="6" font-family="monospace"
+            text-anchor="middle" data-t="posterTop"></text>
+      <text x="254" y="86" fill="#8a8172" font-size="5" font-family="monospace"
+            text-anchor="middle" data-t="posterBottom"></text>
+      <rect x="10" y="130" width="280" height="8" fill="#3a3229"/>
+      <g>
+        <circle cx="150" cy="118" r="13" fill="#c9a27a"/>
+        <path d="M137 116a13 13 0 0126 0z" fill="#3a2c22"/>
+        <path d="M136 116a14 14 0 0128 0" fill="none" stroke="#8a8172" stroke-width="2.5"/>
+        <rect x="132" y="113" width="6" height="9" rx="2" fill="#8a8172"/>
+        <rect x="162" y="113" width="6" height="9" rx="2" fill="#8a8172"/>
+        <path d="M136 121q-7 5-7 9" fill="none" stroke="#8a8172" stroke-width="1.6"/>
+        <circle cx="129" cy="131" r="2" fill="#8a8172"/>
+        <path d="M132 131h36v9h-36z" fill="#4a6b8a"/>
+      </g>
+      <rect x="196" y="121" width="11" height="9" rx="1.5" fill="#8a8172"/>
+      <path d="M207 123h4a3 3 0 010 5h-4" fill="none" stroke="#8a8172" stroke-width="1.5"/>
+      <path d="M199 118q2-4 0-7M203 118q2-4 0-7" stroke="#4d473d" stroke-width="1" fill="none"/>
+      <g class="phone">
+        <rect x="86" y="118" width="26" height="13" rx="2" fill="#b03a34"/>
+        <rect x="88" y="112" width="22" height="7" rx="3" fill="#ff5f56"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="label" id="link">…</div>
+  <div class="queue" id="queue">—</div>
+
+  <dl class="card">
+    <dt data-t="rowOperator"></dt><dd data-t="valOperator"></dd>
+    <dt data-t="rowShift"></dt><dd class="warn" data-t="valShift"></dd>
+    <dt data-t="rowBreaks"></dt><dd class="bad">0</dd>
+    <dt data-t="rowBoss"></dt><dd data-t="valBoss"></dd>
+    <dt data-t="rowPay"></dt><dd class="bad" data-t="valPay"></dd>
+  </dl>
+
+  <div class="memo">
+    <span class="head" data-t="memoHead"></span>
+    <span id="memoBody"></span>
+    <p class="sig" data-t="memoSig"></p>
+  </div>
+
+  <div class="ticker"><div id="ticker"></div></div>
+
+  <p class="small" id="perms" style="color:var(--amber)"></p>
+  <button class="go" id="btnCall" data-t="btnCall"></button>
+  <p class="fine" data-t="fine"></p>
+</section>
+
+<section id="incoming" class="screen ringing">
+  <div class="scene" style="max-width:210px">
+    <svg viewBox="0 0 200 140" role="img" aria-label="Ringing phone">
+      <g class="phone">
+        <path d="M40 92q60 34 120 0l14 20q-74 42-148 0z" fill="#b03a34"/>
+        <rect x="34" y="60" width="34" height="34" rx="6" fill="#ff5f56"/>
+        <rect x="132" y="60" width="34" height="34" rx="6" fill="#ff5f56"/>
+        <path d="M68 84q32 12 64 0" fill="none" stroke="#7a2723" stroke-width="4"/>
+      </g>
+      <g stroke="#ffb454" stroke-width="3" fill="none" opacity=".85">
+        <path d="M22 52q-10-12-6-26"/><path d="M178 52q10-12 6-26"/>
+        <path d="M8 66q-14-16-8-38"/><path d="M192 66q14-16 8-38"/>
+      </g>
+    </svg>
+  </div>
+  <div class="label" data-t="incoming"></div>
+  <div class="who" id="whoIn">—</div>
+  <div class="where" id="whereIn">—</div>
+  <div class="buttons">
+    <div class="pair"><button class="btn reject" id="btnReject">✕</button>
+      <span class="cap" data-t="capReject"></span></div>
+    <div class="pair"><button class="btn accept" id="btnAccept">✓</button>
+      <span class="cap" data-t="capAccept"></span></div>
+  </div>
+</section>
+
+<section id="live" class="screen">
+  <div class="scene" style="max-width:130px">
+    <svg viewBox="0 0 120 110" role="img" aria-label="Operator with a headset">
+      <circle cx="60" cy="52" r="26" fill="#c9a27a"/>
+      <path d="M34 48a26 26 0 0152 0z" fill="#3a2c22"/>
+      <path d="M32 50a28 28 0 0156 0" fill="none" stroke="#8a8172" stroke-width="5"/>
+      <rect x="24" y="44" width="11" height="18" rx="4" fill="#8a8172"/>
+      <rect x="85" y="44" width="11" height="18" rx="4" fill="#8a8172"/>
+      <path d="M32 62q-13 10-13 18" fill="none" stroke="#8a8172" stroke-width="3"/>
+      <circle cx="19" cy="82" r="4" fill="#ffb454"/>
+      <path d="M30 84h60v22H30z" fill="#4a6b8a"/>
+    </svg>
+  </div>
+  <div class="who" id="whoLive" style="font-size:20px">—</div>
+  <div class="clock" id="clock">00:00</div>
+  <div class="label" id="phase"></div>
+  <div class="wave" id="wave"></div>
+  <div class="bubble" id="delivered" hidden>—</div>
+  <div class="buttons">
+    <div class="pair"><button class="btn hang" id="btnHang">✕</button>
+      <span class="cap" data-t="capHang"></span></div>
+  </div>
+  <p class="fine" data-t="monitored"></p>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────── copy, in both languages
+const T = {
+  en: {
+    branch:"AGENT SUPPORT · LOCALHOST BRANCH",
+    posterTop:"SMILE", posterBottom:"they hear it",
+    rowOperator:"OPERATOR", valOperator:"you, again",
+    rowShift:"SHIFT", valShift:"open · no end in sight",
+    rowBreaks:"BREAKS LEFT", rowBoss:"SUPERVISOR", valBoss:"none (it's you)",
+    rowPay:"PAY", valPay:"tokens",
+    memoHead:"▚ INTERNAL MEMO ▚",
+    memo:"To confirm that programmers are now a gig-economy underclass doomed to "+
+         "talk to ten chatbots for the rest of our lives, this is a virtual phone "+
+         "your agents call when they need something. You unblock them, hang up, "+
+         "and wait for the next call.",
+    memoSig:"— management (also you)",
+    ticker:["REMEMBER TO SMILE, THE AGENT CAN HEAR IT",
+            "YOUR SILENCE IS THEIR BLOCKER",
+            "EMPLOYEE OF THE MONTH: THE ONLY EMPLOYEE",
+            "THERE IS NO QUEUE, THERE ARE OPPORTUNITIES"],
+    btnCall:"Answer whoever waited longest",
+    fine:"Claude Center S.A. · Calls recorded for no purpose · No days off",
+    incoming:"incoming call · collect",
+    capReject:"let it wait", capAccept:"answer", capHang:"hang up",
+    monitored:"This call may be monitored by yourself",
+    connecting:"connecting…", online:"online", offline:"offline — retrying",
+    queue0:"nobody needs you — enjoy it",
+    queue1:"1 agent stuck, waiting on you",
+    queueN:"{n} agents stuck, waiting on you",
+    phaseConnecting:"connecting", phaseConnected:"connected",
+    phaseSpeaking:"they're talking", phaseListening:"listening to you",
+    perms:'Tap the button once to enable sound and notifications.',
+    busy:"There's already a call in progress.",
+    nobody:"No agents are waiting.",
+    sent:"instruction sent", nothing:"nothing sent", youHung:"you hung up",
+    noMic:"Microphone permission denied",
+    needsYou:"needs a decision from you",
+  },
+  es: {
+    branch:"ATENCIÓN AL AGENTE · SUCURSAL LOCALHOST",
+    posterTop:"SONREÍ", posterBottom:"te escuchan",
+    rowOperator:"OPERADOR", valOperator:"vos, otra vez",
+    rowShift:"TURNO", valShift:"abierto · sin cierre previsto",
+    rowBreaks:"DESCANSOS RESTANTES", rowBoss:"SUPERVISOR", valBoss:"ninguno (sos vos)",
+    rowPay:"SUELDO", valPay:"tokens",
+    memoHead:"▚ COMUNICADO INTERNO ▚",
+    memo:"Para confirmar que los programadores ahora somos una banda de "+
+         "precarizados digitales condenados a hablar con diez chatbots toda la "+
+         "vida, esto es un teléfono virtual al que tus agentes te llaman cuando "+
+         "necesitan algo. Los destrabás, cortás, y esperás una nueva llamada.",
+    memoSig:"— la gerencia (también sos vos)",
+    ticker:["RECORDÁ SONREÍR AL HABLAR, EL AGENTE LO PERCIBE",
+            "TU SILENCIO ES SU BLOQUEO",
+            "EMPLEADO DEL MES: EL ÚNICO EMPLEADO",
+            "NO HAY COLA, HAY OPORTUNIDADES"],
+    btnCall:"Atender al que más esperó",
+    fine:"Claude Center S.A. · Llamadas grabadas para fines de nada · Prohibido el franco",
+    incoming:"llamada entrante · cobro revertido",
+    capReject:"que espere", capAccept:"atender", capHang:"cortar",
+    monitored:"Esta llamada podría ser monitoreada por vos mismo",
+    connecting:"conectando…", online:"en línea", offline:"sin conexión — reintentando",
+    queue0:"nadie te necesita — disfrutalo",
+    queue1:"1 agente trabado esperándote",
+    queueN:"{n} agentes trabados esperándote",
+    phaseConnecting:"conectando", phaseConnected:"en línea",
+    phaseSpeaking:"te habla", phaseListening:"te escucho",
+    perms:'Tocá el botón una vez para habilitar el sonido y las notificaciones.',
+    busy:"Ya hay una llamada en curso.",
+    nobody:"No hay agentes esperando.",
+    sent:"instrucción enviada", nothing:"sin instrucción", youHung:"cortaste",
+    noMic:"Sin permiso de micrófono",
+    needsYou:"necesita una decisión tuya",
+  },
+};
+let lang = localStorage.getItem("cc_lang")
+        || (navigator.language || "en").slice(0,2).toLowerCase();
+if (!T[lang]) lang = "en";
+const t = (k) => (T[lang] && T[lang][k]) || T.en[k] || k;
+
+function paint(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el=>{
+    const k = el.getAttribute("data-t");
+    (el instanceof SVGElement) ? el.textContent = t(k) : el.textContent = t(k);
+  });
+  $("memoBody").textContent = t("memo");
+  const items = t("ticker").join(" · ") + " · ";
+  $("ticker").textContent = items + items;
+  $("btnLang").textContent = lang === "es" ? "EN" : "ES";
+  if (lastQueue !== null) showQueue(lastQueue);
+}
+
+const $ = (id)=>document.getElementById(id);
+const screens = { idle:$('idle'), incoming:$('incoming'), live:$('live') };
+const show = (n)=>{ for (const [k,el] of Object.entries(screens)) el.classList.toggle('on', k===n); };
+function toast(msg){ const a=$('toast'); a.textContent=msg; a.style.display='block';
+  setTimeout(()=>a.style.display='none',4000); }
+
+let lastQueue = null;
+function showQueue(n){
+  lastQueue = n;
+  const el = $('queue'); el.classList.toggle('empty', n===0);
+  el.textContent = n===0 ? t('queue0') : n===1 ? t('queue1') : t('queueN').replace('{n}', n);
+}
+
+// ─────────────────────────────── connection
+let ws;
+function connect(){
+  const proto = location.protocol==='https:' ? 'wss':'ws';
+  ws = new WebSocket(`${proto}://${location.host}/`);
+  ws.binaryType = 'arraybuffer';
+  ws.onopen  = ()=> $('link').textContent = t('online');
+  ws.onclose = ()=>{ $('link').textContent = t('offline'); setTimeout(connect,2000); };
+  ws.onmessage = (ev)=> (typeof ev.data === 'string')
+      ? handle(JSON.parse(ev.data)) : play(ev.data);
+}
+const send = (t_,extra={}) => ws && ws.readyState===1 && ws.send(JSON.stringify({t:t_,...extra}));
+
+// ─────────────────────────────── ringtone + notification
+let notif=null;
+function notify(who, where){
+  try{
+    if (Notification.permission!=='granted') return;
+    if (notif) notif.close();
+    notif = new Notification(`📞 ${who}`, { body:`${where} — ${t('needsYou')}`,
+      tag:'claudecenter', renotify:true, requireInteraction:true, vibrate:[300,200,300] });
+    notif.onclick = ()=>{ window.focus(); notif.close(); };
+  }catch(e){}
+}
+let ringCtx=null, ringTimer=null;
+function ring(){
+  try{
+    ringCtx = ringCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const pulse = ()=>{
+      [0,.4].forEach(off=>{
+        const o=ringCtx.createOscillator(), g=ringCtx.createGain();
+        o.frequency.value=480; const at=ringCtx.currentTime+off;
+        g.gain.setValueAtTime(0,at); g.gain.linearRampToValueAtTime(.25,at+.05);
+        g.gain.setValueAtTime(.25,at+.28); g.gain.linearRampToValueAtTime(0,at+.33);
+        o.connect(g).connect(ringCtx.destination); o.start(at); o.stop(at+.35);
+      });
+      navigator.vibrate && navigator.vibrate([300,200,300]);
+    };
+    pulse(); ringTimer=setInterval(pulse,2200);
+  }catch(e){}
+}
+function hush(){ if(ringTimer){clearInterval(ringTimer);ringTimer=null;}
+  navigator.vibrate && navigator.vibrate(0); }
+
+let started=0, clockTimer=null;
+function startClock(){ started=Date.now(); clockTimer=setInterval(()=>{
+  const s=Math.floor((Date.now()-started)/1000);
+  $('clock').textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+},500); }
+
+// ─────────────────────────────── live audio
+// In: 16 kHz PCM to the server. Out: 24 kHz PCM. These are what the Gemini
+// Live API requires; change them here and in claudecenter/config.py together.
+const IN_HZ=16000, OUT_HZ=24000;
+let stream=null, micCtx=null, micNode=null, micSrc=null;
+let outCtx=null, nextAt=0, playing=[];
+
+function openMic(){
+  micCtx = new (window.AudioContext||window.webkitAudioContext)({ sampleRate: IN_HZ });
+  micSrc = micCtx.createMediaStreamSource(stream);
+  micNode = micCtx.createScriptProcessor(2048, 1, 1);
+  const bars = $('wave'); bars.innerHTML = '<i></i>'.repeat(14);
+  const els = [...bars.children];
+  micNode.onaudioprocess = (ev)=>{
+    const f = ev.inputBuffer.getChannelData(0);
+    const pcm = new Int16Array(f.length); let peak=0;
+    for (let i=0;i<f.length;i++){
+      const v = Math.max(-1, Math.min(1, f[i]));
+      pcm[i] = v<0 ? v*0x8000 : v*0x7fff;
+      if (Math.abs(v)>peak) peak=Math.abs(v);
+    }
+    if (ws && ws.readyState===1) ws.send(pcm.buffer);
+    const h = 5 + Math.min(25, peak*90);
+    els.forEach((el,i)=> el.style.height = (5 + (h-5)*(0.55+0.45*Math.sin(i*1.1)))+'px');
+  };
+  micSrc.connect(micNode); micNode.connect(micCtx.destination);
+  outCtx = new (window.AudioContext||window.webkitAudioContext)({ sampleRate: OUT_HZ });
+  nextAt = 0;
+}
+
+// Queue each chunk and schedule it right after the previous one, seamlessly.
+function play(buf){
+  if (!outCtx) return;
+  const pcm = new Int16Array(buf);
+  const audio = outCtx.createBuffer(1, pcm.length, OUT_HZ);
+  const ch = audio.getChannelData(0);
+  for (let i=0;i<pcm.length;i++) ch[i] = pcm[i]/0x8000;
+  const src = outCtx.createBufferSource();
+  src.buffer = audio; src.connect(outCtx.destination);
+  const now = outCtx.currentTime;
+  if (nextAt < now + 0.05) nextAt = now + 0.05;
+  src.start(nextAt); nextAt += audio.duration;
+  playing.push(src);
+  src.onended = ()=>{ playing = playing.filter(s=>s!==src);
+    if (!playing.length) $('wave').classList.remove('speaking'); };
+  $('wave').classList.add('speaking');
+  $('phase').textContent = t('phaseSpeaking');
+}
+
+// Interrupting: throw away everything already scheduled.
+function stopAudio(){
+  playing.forEach(s=>{ try{ s.stop(); }catch(e){} });
+  playing = []; nextAt = 0;
+  $('wave').classList.remove('speaking');
+  $('phase').textContent = t('phaseListening');
+}
+
+// ─────────────────────────────── protocol
+function handle(m){
+  if (m.t==='ring'){
+    notify(m.who, m.cwd);
+    $('whoIn').textContent=m.who; $('whereIn').textContent=m.cwd;
+    $('whoLive').textContent=m.who; $('delivered').hidden=true;
+    show('incoming'); ring();
+  }
+  else if (m.t==='connected'){ $('phase').textContent=t('phaseConnected'); }
+  else if (m.t==='interrupt'){ stopAudio(); }
+  else if (m.t==='delivered'){
+    $('delivered').hidden=false;
+    $('delivered').textContent=(m.ok?'✓ ':'✗ ')+m.text;
+  }
+  else if (m.t==='ended'){ if(notif){notif.close();notif=null;}
+    hangup(m.delivered ? t('sent') : t('nothing')); }
+  else if (m.t==='status'){ showQueue(m.waiting); }
+  else if (m.t==='notice'){ toast(t(m.key)); }
+}
+
+// ─────────────────────────────── buttons
+$('btnAccept').onclick = async ()=>{
+  hush();
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true }});
+  }catch(e){ toast(t('noMic')); return; }
+  openMic();
+  try{ await navigator.wakeLock.request('screen'); }catch(e){}
+  send('accept'); show('live'); startClock();
+  $('phase').textContent = t('phaseConnecting');
+};
+$('btnReject').onclick = ()=>{ hush(); send('reject'); show('idle'); };
+$('btnHang').onclick   = ()=>{ send('hangup'); hangup(t('youHung')); };
+$('btnCall').onclick   = ()=>{
+  // This tap is what unlocks browser audio and asks for notifications.
+  try{ (ringCtx = ringCtx || new AudioContext()).resume(); }catch(e){}
+  try{ Notification.requestPermission(); }catch(e){}
+  send('call_next');
+};
+$('btnLang').onclick = ()=>{
+  lang = lang === 'es' ? 'en' : 'es';
+  localStorage.setItem('cc_lang', lang); paint();
+  $('link').textContent = ws && ws.readyState===1 ? t('online') : t('offline');
+  checkPerms();
+};
+
+function hangup(why){
+  hush(); stopAudio();
+  if (clockTimer) clearInterval(clockTimer);
+  if (micNode){ try{ micNode.disconnect(); micSrc.disconnect(); }catch(e){} micNode=null; }
+  if (micCtx){ try{ micCtx.close(); }catch(e){} micCtx=null; }
+  if (outCtx){ try{ outCtx.close(); }catch(e){} outCtx=null; }
+  if (stream){ stream.getTracks().forEach(x=>x.stop()); stream=null; }
+  show('idle'); toast(why);
+}
+
+function checkPerms(){
+  let msg='';
+  try{ if (Notification.permission!=='granted') msg=t('perms'); }catch(e){}
+  $('perms').textContent = msg;
+}
+
+// The server's CC_LANG wins the first time; after that your toggle sticks.
+fetch('/config.json').then(r=>r.json()).then(c=>{
+  if (!localStorage.getItem('cc_lang') && T[c.lang]) lang = c.lang;
+  paint(); $('link').textContent = t('connecting'); checkPerms(); connect();
+}).catch(()=>{ paint(); $('link').textContent = t('connecting'); checkPerms(); connect(); });
+setInterval(checkPerms, 3000);
+</script>
+</body>
+</html>
