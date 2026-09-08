@@ -8,6 +8,9 @@ cortás, y sigue trabajando.
 
 [English](README.md) · [Cómo funciona](#cómo-funciona) · [Instalación](#instalación) · [Cuánto sale](#cuánto-sale)
 
+<img src="docs/screenshot-idle.png" alt="Claude Center" width="330">
+
+
 </div>
 
 ---

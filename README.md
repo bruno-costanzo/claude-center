@@ -8,6 +8,9 @@ and it keeps working.
 
 [Español](README.es.md) · [How it works](#how-it-works) · [Install](#install) · [Cost](#what-it-costs)
 
+<img src="docs/screenshot-idle.png" alt="Claude Center" width="330">
+
+
 </div>
 
 ---
